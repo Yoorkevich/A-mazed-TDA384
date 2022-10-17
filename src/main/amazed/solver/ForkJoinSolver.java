@@ -3,7 +3,9 @@ package amazed.solver;
 import amazed.maze.Maze;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -19,8 +21,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ForkJoinSolver
         extends SequentialSolver {
-    private static AtomicBoolean goalReached = new AtomicBoolean();
-    private List<ForkJoinSolver> forks = new ArrayList<ForkJoinSolver>();
+    private AtomicBoolean goalReached = new AtomicBoolean();
+    private ArrayList<ForkJoinSolver> forks = new ArrayList<>();
     private ConcurrentSkipListSet visited = new ConcurrentSkipListSet();
     private int startPos;
 
@@ -50,10 +52,13 @@ public class ForkJoinSolver
         this.forkAfter = forkAfter;
     }
 
-    public ForkJoinSolver(Maze maze, int forkAfter, int startPos) {
+    public ForkJoinSolver(Maze maze, int forkAfter, int startPos, ConcurrentSkipListSet visited, ArrayList<ForkJoinSolver> forks, Map<Integer, Integer> predecessor) {
         this(maze);
         this.forkAfter = forkAfter;
         this.startPos = startPos;
+        this.visited = visited;
+        this.forks = forks;
+        this.predecessor = predecessor;
     }
 
     /**
@@ -74,12 +79,12 @@ public class ForkJoinSolver
 
     //{}
     private List<Integer> parallelSearch() {
-        if(forks.size() == 0){
-            startPos = start;
-        }
+
         int player = maze.newPlayer(startPos);
         frontier.push(startPos);
         int nSteps = 0;
+        int currentNode;
+
 
         while (!frontier.empty() && !goalReached.get()) {
 
@@ -89,15 +94,14 @@ public class ForkJoinSolver
                 maze.move(player, currentNode);
                 nSteps++;
                 goalReached.set(true);
-                for (ForkJoinSolver thread : forks) {
-                    thread.join();
-                }
+                System.out.println(pathFromTo(start, currentNode));
                 return pathFromTo(start, currentNode);
             }
             if (visited.add(currentNode)) {
                 maze.move(player, currentNode);
                 nSteps++;
                 boolean firstNeighbour = true;
+
                 for (int neighbour : maze.neighbors(currentNode)) {
                     predecessor.put(neighbour, currentNode);
 
@@ -115,8 +119,19 @@ public class ForkJoinSolver
                 }
             }
         }
-        for (ForkJoinSolver thread : forks) {
-            thread.join();
+        for (ForkJoinSolver fork : forks) {
+            fork.join();
+        }
+        return null;
+    }
+    private List<Integer> joinForks() {
+        for (ForkJoinSolver solver:forks) {
+            List<Integer> result = solver.join();
+            if(result!=null) {
+                List<Integer> myPath = pathFromTo(start, predecessor.get(solver.startPos));
+                myPath.addAll(result);
+                return myPath;
+            }
         }
         return null;
     }
