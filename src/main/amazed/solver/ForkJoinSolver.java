@@ -60,6 +60,7 @@ public class ForkJoinSolver
         this.visited = visited;
         this.forks = forks;
         this.predecessor = predecessor;
+        this.goalReached = goalReached;
     }
 
     /**
@@ -78,7 +79,6 @@ public class ForkJoinSolver
         return parallelSearch();
     }
 
-    //{}
     private List<Integer> parallelSearch() {
 
         int player = maze.newPlayer(startPos);
@@ -88,7 +88,6 @@ public class ForkJoinSolver
 
 
         while (!frontier.empty() && !goalReached.get()) {
-
             currentNode = frontier.pop();
 
             if (maze.hasGoal(currentNode)) {
@@ -116,7 +115,7 @@ public class ForkJoinSolver
 
                             } else {
                                 if (visited.add(neighbour)) {
-                                    ForkJoinSolver forkThread = new ForkJoinSolver(maze, nSteps, neighbour, visited, forks, predecessor);
+                                    ForkJoinSolver forkThread = new ForkJoinSolver(maze, nSteps, neighbour, visited, forks, predecessor, goalReached);
                                     forks.add(forkThread);
                                     forkThread.fork();
                                 }
