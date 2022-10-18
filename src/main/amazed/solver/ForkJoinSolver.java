@@ -7,6 +7,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -53,7 +55,7 @@ public class ForkJoinSolver
         this.forkAfter = forkAfter;
     }
 
-    public ForkJoinSolver(Maze maze, int forkAfter, int startPos, ConcurrentSkipListSet visited, ArrayList<ForkJoinSolver> forks, Map<Integer, Integer> predecessor) {
+    public ForkJoinSolver(Maze maze, int forkAfter, int startPos, ConcurrentSkipListSet visited, ArrayList<ForkJoinSolver> forks, Map<Integer, Integer> predecessor, AtomicBoolean goalReached) {
         this(maze);
         this.forkAfter = forkAfter;
         this.startPos = startPos;
@@ -80,7 +82,6 @@ public class ForkJoinSolver
     }
 
     private List<Integer> parallelSearch() {
-
         int player = maze.newPlayer(startPos);
         frontier.push(startPos);
         int nSteps = 0;
@@ -110,7 +111,6 @@ public class ForkJoinSolver
 
                         if (maze.neighbors(currentNode).size() > 2) {
                             if (firstNeighbour) {
-
                                 firstNeighbour = false;
 
                             } else {
@@ -124,19 +124,18 @@ public class ForkJoinSolver
                     }
                 }
             }
+
         }
-        for (ForkJoinSolver fork : forks) {
-            fork.join();
-        }
-        return null;
+        return joinForks();
     }
+
     private List<Integer> joinForks() {
-        for (ForkJoinSolver solver:forks) {
-            List<Integer> result = solver.join();
+        for (ForkJoinSolver fork:forks) {
+            List<Integer> result = fork.join();
             if(result!=null) {
-                List<Integer> myPath = pathFromTo(start, predecessor.get(solver.startPos));
-                myPath.addAll(result);
-                return myPath;
+                List<Integer> path = pathFromTo(start, predecessor.get(fork.startPos));
+                path.addAll(result);
+                return path;
             }
         }
         return null;
