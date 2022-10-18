@@ -3,10 +3,7 @@ package amazed.solver;
 import amazed.maze.Maze;
 
 import java.sql.SQLOutput;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentSkipListSet;
@@ -26,7 +23,6 @@ public class ForkJoinSolver
         extends SequentialSolver {
     private AtomicBoolean goalReached = new AtomicBoolean();
     private ArrayList<ForkJoinSolver> forks = new ArrayList<>();
-    private ConcurrentSkipListSet visited = new ConcurrentSkipListSet();
     private int startPos = start;
 
     /**
@@ -57,7 +53,6 @@ public class ForkJoinSolver
 
     public ForkJoinSolver(Maze maze, int forkAfter, int startPos, ConcurrentSkipListSet visited, ArrayList<ForkJoinSolver> forks, Map<Integer, Integer> predecessor, AtomicBoolean goalReached) {
         this(maze);
-        this.forkAfter = forkAfter;
         this.startPos = startPos;
         this.visited = visited;
         this.forks = forks;
@@ -93,38 +88,32 @@ public class ForkJoinSolver
 
             if (maze.hasGoal(currentNode)) {
                 maze.move(player, currentNode);
-                nSteps++;
                 goalReached.set(true);
                 return pathFromTo(start, currentNode);
             }
             //checks if next node is visited or not or if it is the starting node
             if (visited.add(currentNode) || currentNode == startPos) {
                 maze.move(player, currentNode);
-                nSteps++;
                 boolean firstNeighbour = true;
 
                 for (int neighbour : maze.neighbors(currentNode)) {
 
                     if (!visited.contains(neighbour)) {
                         predecessor.put(neighbour, currentNode);
-                        frontier.push(neighbour);
 
-                        if (maze.neighbors(currentNode).size() > 2) {
-                            if (firstNeighbour) {
-                                firstNeighbour = false;
-
-                            } else {
-                                if (visited.add(neighbour)) {
-                                    ForkJoinSolver forkThread = new ForkJoinSolver(maze, nSteps, neighbour, visited, forks, predecessor, goalReached);
-                                    forks.add(forkThread);
-                                    forkThread.fork();
-                                }
+                        if (firstNeighbour) {
+                            frontier.push(neighbour);
+                            firstNeighbour = false;
+                        } else {
+                            if (visited.add(neighbour)) {
+                                ForkJoinSolver forkThread = new ForkJoinSolver(maze, neighbour, visited, predecessor, goalReached);
+                                forks.add(forkThread);
+                                forkThread.fork();
                             }
                         }
                     }
                 }
             }
-
         }
         return joinForks();
     }
