@@ -51,11 +51,11 @@ public class ForkJoinSolver
         this.forkAfter = forkAfter;
     }
 
-    public ForkJoinSolver(Maze maze, int forkAfter, int startPos, ConcurrentSkipListSet visited, ArrayList<ForkJoinSolver> forks, Map<Integer, Integer> predecessor, AtomicBoolean goalReached) {
+    public ForkJoinSolver(
+            Maze maze, int startPos, Set<Integer> visited, Map<Integer, Integer> predecessor, AtomicBoolean goalReached) {
         this(maze);
         this.startPos = startPos;
         this.visited = visited;
-        this.forks = forks;
         this.predecessor = predecessor;
         this.goalReached = goalReached;
     }
