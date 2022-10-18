@@ -84,10 +84,10 @@ public class ForkJoinSolver
     private List<Integer> parallelSearch() {
         int player = maze.newPlayer(startPos);
         frontier.push(startPos);
-        int nSteps = 0;
+
         int currentNode;
 
-
+        //if no nodes are to be visited and no fork has found goal,
         while (!frontier.empty() && !goalReached.get()) {
             currentNode = frontier.pop();
 
@@ -95,9 +95,9 @@ public class ForkJoinSolver
                 maze.move(player, currentNode);
                 nSteps++;
                 goalReached.set(true);
-                System.out.println(pathFromTo(start, currentNode));
                 return pathFromTo(start, currentNode);
             }
+            //checks if next node is visited or not or if it is the starting node
             if (visited.add(currentNode) || currentNode == startPos) {
                 maze.move(player, currentNode);
                 nSteps++;
@@ -129,13 +129,12 @@ public class ForkJoinSolver
         return joinForks();
     }
 
+    //combines fork-threads, adds result of paths and checks whether they found a path or not
     private List<Integer> joinForks() {
         for (ForkJoinSolver fork:forks) {
             List<Integer> result = fork.join();
             if(result!=null) {
-                List<Integer> path = pathFromTo(start, predecessor.get(fork.startPos));
-                path.addAll(result);
-                return path;
+                return result;
             }
         }
         return null;

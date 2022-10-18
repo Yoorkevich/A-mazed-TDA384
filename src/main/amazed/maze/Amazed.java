@@ -80,6 +80,8 @@ public class Amazed
     {
         ForkJoinPool pool = ForkJoinPool.commonPool();
         path = pool.invoke(solver);
+        System.out.println(path);
+
         if (path != null && maze.isValidPath(path))
             System.out.println("Goal found :-D");
         else
