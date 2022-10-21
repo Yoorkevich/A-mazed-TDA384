@@ -22,7 +22,17 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class ForkJoinSolver
         extends SequentialSolver {
     private AtomicBoolean goalReached = new AtomicBoolean();
+    /**
+     * is a list of all threads we create in order to add path-results later on
+     */
     private ArrayList<ForkJoinSolver> forks = new ArrayList<>();
+    /**
+     * makes visited thread-safe, as some players may move to same node simultaneously because of race conditions
+     */
+    private ConcurrentSkipListSet visited = new ConcurrentSkipListSet();
+    /**
+     * startpos created for start of each thread
+     */
     private int startPos = start;
 
     /**
@@ -51,8 +61,16 @@ public class ForkJoinSolver
         this.forkAfter = forkAfter;
     }
 
+    /**
+     * Created to send more parameters to each thread
+     * @param maze - maze to be explored
+     * @param startPos - start position for every thread as these are not the same as start position for the maze
+     * @param visited - set of all visited nodes
+     * @param predecessor - map of predecessors, where key returns previous node
+     * @param goalReached - atomic boolean in case a thread has found the goal
+     */
     public ForkJoinSolver(
-            Maze maze, int startPos, Set<Integer> visited, Map<Integer, Integer> predecessor, AtomicBoolean goalReached) {
+            Maze maze, int startPos, ConcurrentSkipListSet visited, Map<Integer, Integer> predecessor, AtomicBoolean goalReached) {
         this(maze);
         this.startPos = startPos;
         this.visited = visited;
@@ -78,24 +96,38 @@ public class ForkJoinSolver
 
     private List<Integer> parallelSearch() {
         int player = maze.newPlayer(startPos);
+        int currentNode;
         frontier.push(startPos);
 
-        int currentNode;
-
-        //if no nodes are to be visited and no fork has found goal,
+        /**
+         *If no nodes are to be visited and a player has found the goal, the solver will stop running
+         */
         while (!frontier.empty() && !goalReached.get()) {
             currentNode = frontier.pop();
 
+            /**
+             *if any node finds the goal, the global atomic variable goalReached is set to true and the winning path
+             * is returned
+             */
             if (maze.hasGoal(currentNode)) {
                 maze.move(player, currentNode);
                 goalReached.set(true);
+
                 return pathFromTo(start, currentNode);
             }
-            //checks if next node is visited or not or if it is the starting node
+            /**
+             * checks if next node is visited or not or if it is the starting node. If not, the player is moved to that
+             * node
+            */
             if (visited.add(currentNode) || currentNode == startPos) {
                 maze.move(player, currentNode);
                 boolean firstNeighbour = true;
 
+                /**
+                 * looks at every neighbour for the current node. If there is only one unvisited neighbour, the player
+                 * will move there, but if there's another or more unvisited neighbour-nodes, a new thread is created
+                 * on that node.
+                */
                 for (int neighbour : maze.neighbors(currentNode)) {
 
                     if (!visited.contains(neighbour)) {
@@ -122,7 +154,7 @@ public class ForkJoinSolver
     private List<Integer> joinForks() {
         for (ForkJoinSolver fork:forks) {
             List<Integer> result = fork.join();
-            if(result!=null) {
+            if(result != null) {
                 return result;
             }
         }
