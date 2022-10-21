@@ -21,6 +21,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ForkJoinSolver
         extends SequentialSolver {
+    /**
+     * created an atomicboolean in order to check if the goal is reached by setting a boolean.
+     */
     private AtomicBoolean goalReached = new AtomicBoolean();
     /**
      * is a list of all threads we create in order to add path-results later on
@@ -94,7 +97,11 @@ public class ForkJoinSolver
         return parallelSearch();
     }
 
+
     private List<Integer> parallelSearch() {
+        /**Creates a new player in the start position for the current thread which is either the start of the maze
+         * or the position where the thread forked.Pushes start position to be the first node checked.
+         */
         int player = maze.newPlayer(startPos);
         int currentNode;
         frontier.push(startPos);
@@ -132,11 +139,10 @@ public class ForkJoinSolver
 
                     if (!visited.contains(neighbour)) {
                         predecessor.put(neighbour, currentNode);
-
                         if (firstNeighbour) {
                             frontier.push(neighbour);
                             firstNeighbour = false;
-                        } else {
+                        }else {
                             if (visited.add(neighbour)) {
                                 ForkJoinSolver forkThread = new ForkJoinSolver(maze, neighbour, visited, predecessor, goalReached);
                                 forks.add(forkThread);
@@ -150,7 +156,9 @@ public class ForkJoinSolver
         return joinForks();
     }
 
-    //combines fork-threads, adds result of paths and checks whether they found a path or not
+    /**
+    combines fork-threads, adds result of paths and checks whether they found a goal or not
+     */
     private List<Integer> joinForks() {
         for (ForkJoinSolver fork:forks) {
             List<Integer> result = fork.join();
